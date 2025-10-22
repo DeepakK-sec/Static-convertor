@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Unit Converter</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    body {
+      background: #f5f7fa;
+      padding: 2rem;
+      color: #333;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      color: #2c3e50;
+    }
+    label {
+      display: block;
+      margin: 1rem 0 0.5rem;
+      font-weight: 600;
+    }
+    select, input {
+      width: 100%;
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+    button {
+      width: 100%;
+      padding: 0.75rem;
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #2980b9;
+    }
+    #result {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background: #e8f4fc;
+      border-radius: 6px;
+      text-align: center;
+      font-size: 1.2rem;
+      display: none;
+    }
+    @media (max-width: 600px) {
+      body { padding: 1rem; }
+      .container { padding: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Unit Converter</h1>
+
+    <label for="category">Category</label>
+    <select id="category">
+      <option value="length">Length</option>
+      <option value="weight">Weight</option>
+      <option value="temperature">Temperature</option>
+      <option value="area">Area</option>
+      <option value="volume">Volume</option>
+    </select>
+
+    <label for="fromUnit">From</label>
+    <select id="fromUnit"></select>
+
+    <label for="toUnit">To</label>
+    <select id="toUnit"></select>
+
+    <label for="value">Value</label>
+    <input type="number" id="value" placeholder="Enter a number" step="any" />
+
+    <button onclick="convert()">Convert</button>
+
+    <div id="result"></div>
+  </div>
+
+  <script>
+    // Conversion data
+    const units = {
+      length: {
+        options: ['meters', 'kilometers', 'centimeters', 'millimeters', 'miles', 'yards', 'feet', 'inches'],
+        meters: {
+          meters: 1,
+          kilometers: 0.001,
+          centimeters: 100,
+          millimeters: 1000,
+          miles: 0.000621371,
+          yards: 1.09361,
+          feet: 3.28084,
+          inches: 39.3701
+        }
+      },
+      weight: {
+        options: ['grams', 'kilograms', 'milligrams', 'pounds', 'ounces'],
+        grams: {
+          grams: 1,
+          kilograms: 0.001,
+          milligrams: 1000,
+          pounds: 0.00220462,
+          ounces: 0.035274
+        }
+      },
+      temperature: {
+        options: ['celsius', 'fahrenheit', 'kelvin'],
+        // Special case – handled separately
+      },
+      area: {
+        options: ['square-meters', 'square-kilometers', 'square-feet', 'square-inches', 'acres', 'hectares'],
+        'square-meters': {
+          'square-meters': 1,
+          'square-kilometers': 0.000001,
+          'square-feet': 10.7639,
+          'square-inches': 1550,
+          'acres': 0.000247105,
+          'hectares': 0.0001
+        }
+      },
+      volume: {
+        options: ['liters', 'milliliters', 'cubic-meters', 'gallons', 'cubic-feet'],
+        liters: {
+          liters: 1,
+          milliliters: 1000,
+          'cubic-meters': 0.001,
+          gallons: 0.264172,
+          'cubic-feet': 0.0353147
+        }
+      }
+    };
+
+    const categorySelect = document.getElementById('category');
+    const fromUnitSelect = document.getElementById('fromUnit');
+    const toUnitSelect = document.getElementById('toUnit');
+    const resultDiv = document.getElementById('result');
+
+    // Initialize unit dropdowns
+    function updateUnits() {
+      const category = categorySelect.value;
+      const options = units[category].options;
+
+      fromUnitSelect.innerHTML = '';
+      toUnitSelect.innerHTML = '';
+
+      options.forEach(opt => {
+        const opt1 = document.createElement('option');
+        opt1.value = opt;
+        opt1.textContent = opt.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        fromUnitSelect.appendChild(opt1);
+
+        const opt2 = document.createElement('option');
+        opt2.value = opt;
+        opt2.textContent = opt.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        toUnitSelect.appendChild(opt2);
+      });
+
+      // Default selection
+      if (category === 'length') {
+        fromUnitSelect.value = 'meters';
+        toUnitSelect.value = 'kilometers';
+      } else if (category === 'temperature') {
+        fromUnitSelect.value = 'celsius';
+        toUnitSelect.value = 'fahrenheit';
+      }
+    }
+
+    // Conversion logic
+    function convert() {
+      const category = categorySelect.value;
+      const from = fromUnitSelect.value;
+      const to = toUnitSelect.value;
+      const inputValue = parseFloat(document.getElementById('value').value);
+
+      if (isNaN(inputValue)) {
+        resultDiv.style.display = 'block';
+        resultDiv.textContent = 'Please enter a valid number.';
+        resultDiv.style.background = '#ffe6e6';
+        return;
+      }
+
+      let result;
+
+      if (category === 'temperature') {
+        result = convertTemperature(inputValue, from, to);
+      } else {
+        const baseUnit = Object.keys(units[category])[0]; // e.g., 'meters'
+        const fromFactor = units[category][baseUnit][from];
+        const toFactor = units[category][baseUnit][to];
+        const inBase = inputValue / fromFactor;
+        result = inBase * toFactor;
+      }
+
+      resultDiv.style.display = 'block';
+      resultDiv.style.background = '#e8f4fc';
+      resultDiv.innerHTML = `
+        <strong>${inputValue} ${formatUnit(from)}</strong> = 
+        <strong>${Number(result.toFixed(6)).toString().replace(/\.?0+$/, '')} ${formatUnit(to)}</strong>
+      `;
+    }
+
+    function convertTemperature(value, from, to) {
+      if (from === to) return value;
+
+      // Convert to Celsius first
+      let celsius;
+      if (from === 'celsius') celsius = value;
+      else if (from === 'fahrenheit') celsius = (value - 32) * 5/9;
+      else if (from === 'kelvin') celsius = value - 273.15;
+
+      // Convert from Celsius to target
+      if (to === 'celsius') return celsius;
+      if (to === 'fahrenheit') return celsius * 9/5 + 32;
+      if (to === 'kelvin') return celsius + 273.15;
+    }
+
+    function formatUnit(unit) {
+      return unit.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+
+    // Initialize
+    categorySelect.addEventListener('change', updateUnits);
+    updateUnits();
+  </script>
+</body>
+</html>
